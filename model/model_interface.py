@@ -9,6 +9,14 @@ import pytorch_lightning as pl
 
 class MInterface(pl.LightningModule):
     def __init__(self, model_name, loss, lr, **kargs):
+        """
+        must provide following args
+        Args:
+            model_name: str python file name
+            loss: str or configure yourselves
+            lr: float
+            **kargs:
+        """
         super().__init__()
         self.save_hyperparameters()
         self.load_model()
@@ -55,7 +63,7 @@ class MInterface(pl.LightningModule):
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.hparams.lr, weight_decay=weight_decay)
 
-        if self.hparams.lr_scheduler is None:
+        if not hasattr(self.hparams, self.hparams.lr_scheduler):
             return optimizer
         else:
             if self.hparams.lr_scheduler == 'step':
