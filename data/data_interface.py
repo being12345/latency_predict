@@ -25,12 +25,14 @@ class DInterface(pl.LightningDataModule):
     def __init__(self, num_workers=8,
                  dataset='',
                  **kwargs):
+        """
+        dataset: tensor or string
+        """
         super().__init__()
         self.num_workers = num_workers
-        self.dataset = dataset
+        self.dataset = self.load_data_module() if isinstance(dataset, str) else dataset
         self.kwargs = kwargs
         self.batch_size = kwargs['batch_size']
-        self.load_data_module()
 
     def setup(self, stage=None):
         # Assign train/val datasets for use in dataloaders
@@ -58,7 +60,7 @@ class DInterface(pl.LightningDataModule):
         # class name corresponding `CamelCase`.
         camel_name = ''.join([i.capitalize() for i in name.split('_')])
         try:
-            self.data_module = getattr(importlib.import_module(
+            return getattr(importlib.import_module(
                 '.' + name, package=__package__), camel_name)
         except:
             raise ValueError(
