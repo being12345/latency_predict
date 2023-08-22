@@ -15,7 +15,7 @@ class MInterface(pl.LightningModule):
         """
         super().__init__()
         self.save_hyperparameters()
-        self.model = self.load_model(model) if isinstance(model, str) else model
+        self.model = self.load_model() if isinstance(model, str) else model
         self.configure_loss()
 
     def forward(self, X, state):
