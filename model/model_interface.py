@@ -8,22 +8,18 @@ import pytorch_lightning as pl
 
 
 class MInterface(pl.LightningModule):
-    def __init__(self, model_name, loss, lr, **kargs):
+    def __init__(self, model, loss, lr=1.0 * 1e-3, **kargs):
         """
-        must provide following args
-        Args:
-            model_name: str python file name
-            loss: str or configure yourselves
-            lr: float
-            **kargs:
+        model: str or model object
+        loss: str or configure yourselves
         """
         super().__init__()
         self.save_hyperparameters()
-        self.load_model()
+        self.model = self.load_model(model) if isinstance(model, str) else model
         self.configure_loss()
 
-    def forward(self, img):
-        return self.model(img)
+    def forward(self, X, state):
+        return self.model(X, state)
 
     def training_step(self, batch, batch_idx):
         img, labels, filename = batch
@@ -63,7 +59,7 @@ class MInterface(pl.LightningModule):
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.hparams.lr, weight_decay=weight_decay)
 
-        if not hasattr(self.hparams, self.hparams.lr_scheduler):
+        if not hasattr(self.hparams, 'weight_decay'):
             return optimizer
         else:
             if self.hparams.lr_scheduler == 'step':
@@ -101,7 +97,7 @@ class MInterface(pl.LightningModule):
         except:
             raise ValueError(
                 f'Invalid Module File Name or Invalid Class Name {name}.{camel_name}!')
-        self.model = self.instancialize(Model)
+        return Model
 
     def instancialize(self, Model, **other_args):
         """ Instancialize a model using the corresponding parameters

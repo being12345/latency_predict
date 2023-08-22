@@ -23,16 +23,12 @@ from sklearn.model_selection import train_test_split
 
 
 class StandardData(data.Dataset):
-    def __init__(self, data_dir=r'data/ref',
-                 class_num=9,
-                 train=True,
-                 no_augment=True,
-                 aug_prob=0.5,
-                 img_mean=(0.485, 0.456, 0.406),
-                 img_std=(0.229, 0.224, 0.225)):
+    def __init__(self, shuffle,
+                 train,
+                 data_dir=r'data/ref',
+                 ):
         # Set all input args as attributes
         self.__dict__.update(locals())
-        self.aug = train and not no_augment
 
         self.check_files()
 
@@ -41,25 +37,19 @@ class StandardData(data.Dataset):
         # data: folder, pickle file or any other formate
         # Must guarantee  `self.path_list` be given a valid value.
 
-        file_list_path = op.join(self.data_dir, 'file_list.pkl')
-        with open(file_list_path, 'rb') as f:
-            file_list = pkl.load(f)
+        file_list_path = op.join(self.data_dir, 'file_list.pkl')    # TODO
+        file_list = torch.load(file_list_path)
 
         fl_train, fl_val = train_test_split(
-            file_list, test_size=0.2, random_state=2333)
+            file_list, test_size=0.2, random_state=2333, shuffle=self.shuffle)    # TODO:
         self.path_list = fl_train if self.train else fl_val
 
-        label_file = './data/ref/label_dict.pkl'
+        label_file = './data/ref/label_dict.pkl'    # TODO
         with open(label_file, 'rb') as f:
             self.label_dict = pkl.load(f)
 
     def __len__(self):
         return len(self.path_list)
-
-    def to_one_hot(self, idx):
-        out = np.zeros(self.class_num, dtype=float)
-        out[idx] = 1
-        return out
 
     def __getitem__(self, idx):
         path = self.path_list[idx]
