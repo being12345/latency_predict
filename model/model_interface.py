@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 
 
 class MInterface(pl.LightningModule):
-    def __init__(self, model, loss, lr=1.0 * 1e-3, **kargs):
+    def __init__(self, model, loss=None, lr=1.0 * 1e-3, **kargs):
         """
         model: str or model object
         loss: str or configure yourselves
