@@ -1,7 +1,10 @@
 # Pytorch-Lightning-Template
 
 ## colab workflow
+### quick run 
++ First use [Title](graph_colab_clasification_main.ipynb) test net performance
 
+### run
 update `colab_main` repo url and floder name
 1. push local code to remote
 2. open github notebook in colab
