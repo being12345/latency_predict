@@ -23,10 +23,13 @@ not change
 4. only loss
 
 ## validation_step
+No validation in graph
 <input type="checkbox">  How to decomposition batch? </br>
 <input type="checkbox">  choose metrics ? </br>
 <input type="checkbox">  log? </br>
-1. L1 MS
+1. ok
+2. L1 MS
+3. ok
 
 ## test_step
 <input type="checkbox">  any special? </br>

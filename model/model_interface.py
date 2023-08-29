@@ -8,14 +8,14 @@ import pytorch_lightning as pl
 
 
 class MInterface(pl.LightningModule):
-    def __init__(self, model, loss='l2', lr=1.0 * 1e-3, **kargs):
+    def __init__(self, model, loss='mse', lr=1.0 * 1e-3, **kargs):
         """
         model: str or model object
         loss: str or configure yourselves
         """
         super().__init__()
         self.save_hyperparameters()
-        self.model = self.load_model() if isinstance(model, str) else model
+        self.model = model
         self.configure_loss(loss)
 
     def forward(self, X, edge_index, edge_weight):
@@ -25,6 +25,7 @@ class MInterface(pl.LightningModule):
             return self.model(X, edge_index)
 
     def training_step(self, batch, batch_idx):
+        print(batch)
         snapshot = batch
         out = self(snapshot.x, snapshot.edge_index, snapshot.edge_attr)
         loss = self.loss_function(out, snapshot.y)
@@ -37,17 +38,25 @@ class MInterface(pl.LightningModule):
         out = self(snapshot.x, snapshot.edge_index, snapshot.edge_attr)
         loss = self.loss_function(out, snapshot.y)
 
-        correct_num = sum(label_digit == out_digit).cpu().item()
+        MS = torch.sum((out - snapshot.y) ** 2)
+        L1 = torch.mean(out - snapshot.y)
+        self.log('L2', loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('MS', MS, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('L1', L1, on_step=True, on_epoch=True, prog_bar=True)
 
-        self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log('val_acc', correct_num / len(out_digit),
-                 on_step=False, on_epoch=True, prog_bar=True)
-
-        return correct_num, len(out_digit)
+        return loss
 
     def test_step(self, batch, batch_idx):
-        # Here we just reuse the validation_step for testing
-        return self.validation_step(batch, batch_idx)
+        snapshot = batch
+        out = self(snapshot.x, snapshot.edge_index, snapshot.edge_attr)
+        loss = self.loss_function(out, snapshot.y)
+
+        MS = torch.sum((out - snapshot.y) ** 2)
+        L1 = torch.mean(out - snapshot.y)
+        self.log('L2', loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('MS', MS, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('L1', L1, on_step=True, on_epoch=True, prog_bar=True)
+        return loss
 
     def on_validation_epoch_end(self):
         # Make the Progress Bar leave there
@@ -83,20 +92,6 @@ class MInterface(pl.LightningModule):
             self.loss_function = F.l1_loss
         else:
             raise ValueError("Invalid Loss Type!")
-
-    def load_model(self):
-        name = self.hparams.model_name
-        # Change the `snake_case.py` file name to `CamelCase` class name.
-        # Please always name your model file name as `snake_case.py` and
-        # class name corresponding `CamelCase`.
-        camel_name = ''.join([i.capitalize() for i in name.split('_')])
-        try:
-            Model = getattr(importlib.import_module(
-                '.' + name, package=__package__), camel_name)
-        except:
-            raise ValueError(
-                f'Invalid Module File Name or Invalid Class Name {name}.{camel_name}!')
-        return Model
 
     def instancialize(self, Model, **other_args):
         """ Instancialize a model using the corresponding parameters
