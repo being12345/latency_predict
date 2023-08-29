@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 
 
 class MInterface(pl.LightningModule):
-    def __init__(self, model, loss=None, lr=1.0 * 1e-3, **kargs):
+    def __init__(self, model, loss='l2', lr=1.0 * 1e-3, **kargs):
         """
         model: str or model object
         loss: str or configure yourselves
@@ -16,24 +16,26 @@ class MInterface(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = self.load_model() if isinstance(model, str) else model
-        self.configure_loss()
+        self.configure_loss(loss)
 
-    def forward(self, X, state):
-        return self.model(X, state)
+    def forward(self, X, edge_index, edge_weight):
+        if edge_weight:
+            return self.model(X, edge_index, edge_weight)
+        else:
+            return self.model(X, edge_index)
 
     def training_step(self, batch, batch_idx):
-        img, labels, filename = batch
-        out = self(img)
-        loss = self.loss_function(out, labels)
-        self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-        return loss  # you can also return dict(eg. lstm)
+        snapshot = batch
+        out = self(snapshot.x, snapshot.edge_index, snapshot.edge_attr)
+        loss = self.loss_function(out, snapshot.y)
+
+        self.log('MSE loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        img, labels, filename = batch
-        out = self(img)
-        loss = self.loss_function(out, labels)
-        label_digit = labels.argmax(axis=1)
-        out_digit = out.argmax(axis=1)
+        snapshot = batch
+        out = self(snapshot.x, snapshot.edge_index, snapshot.edge_attr)
+        loss = self.loss_function(out, snapshot.y)
 
         correct_num = sum(label_digit == out_digit).cpu().item()
 
@@ -74,14 +76,11 @@ class MInterface(pl.LightningModule):
                 raise ValueError('Invalid lr_scheduler type!')
             return [optimizer], [scheduler]
 
-    def configure_loss(self):
-        loss = self.hparams.loss.lower()
+    def configure_loss(self, loss):
         if loss == 'mse':
             self.loss_function = F.mse_loss
         elif loss == 'l1':
             self.loss_function = F.l1_loss
-        elif loss == 'bce':
-            self.loss_function = F.binary_cross_entropy
         else:
             raise ValueError("Invalid Loss Type!")
 
